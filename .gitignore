@@ -244,3 +244,6 @@ tags
 [._]*.un~
 
 # End of https://www.toptal.com/developers/gitignore/api/linux,macos,vim,python,ansible
+
+### RouteHub Ansible ###
+inventory/*
