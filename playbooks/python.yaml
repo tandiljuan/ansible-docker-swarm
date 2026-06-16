@@ -65,3 +65,10 @@
         regexp: '^127\.0\.1\.1\s+'
         line: "127.0.1.1 {{ normalized_hostname }}"
       when: hostname_provided
+
+    - name: Ensure localhost resolves to IPv4
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^::1\s+'
+        line: "::1 ip6-localhost ip6-loopback"
+      when: hostname_provided
