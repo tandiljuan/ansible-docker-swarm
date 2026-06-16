@@ -52,3 +52,16 @@
     hostname_provided: "{{ ds_host.name | default('') | trim | length > 0 }}"
 
   tasks:
+
+    - name: Set hostname
+      ansible.builtin.hostname:
+        name: "{{ normalized_hostname }}"
+        use: "{{ remote_os }}"
+      when: hostname_provided
+
+    - name: Ensure hostname exists in /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1\s+'
+        line: "127.0.1.1 {{ normalized_hostname }}"
+      when: hostname_provided
