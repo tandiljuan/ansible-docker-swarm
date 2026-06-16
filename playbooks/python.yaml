@@ -41,3 +41,14 @@
       failed_when: install_python.rc != 0 and install_python.rc != 123
       changed_when: install_python.rc == 123
       when: remote_os == "debian"
+
+# ------------------------------------------------------------------------------
+
+- name: Playbook to configure Host
+  hosts: all
+  become: true
+  vars:
+    normalized_hostname: "{{ ds_host.name | default('') | trim }}"
+    hostname_provided: "{{ ds_host.name | default('') | trim | length > 0 }}"
+
+  tasks:
