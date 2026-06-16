@@ -16,3 +16,28 @@
     - name: Clean OS id and save to a new fact
       ansible.builtin.set_fact:
         remote_os: "{{ command.stdout | trim | lower }}"
+
+    - name: Install Python in Alpine
+      register: install_python
+      ansible.builtin.raw: |
+        if ! command -v python3 > /dev/null 2>&1; then
+          apk update \
+          && apk add --no-cache --no-interactive python3 py3-pip \
+          && exit 123
+        fi
+      failed_when: install_python.rc != 0 and install_python.rc != 123
+      changed_when: install_python.rc == 123
+      when: remote_os == "alpine"
+
+    - name: Install Python in Debian
+      register: install_python
+      ansible.builtin.raw: |
+        if ! command -v python3 > /dev/null 2>&1; then
+          apt-get update \
+          && apt-get install -y --no-install-recommends python3 python3-pip python3-venv \
+          && rm -rf /var/lib/apt/lists/* \
+          && exit 123
+        fi
+      failed_when: install_python.rc != 0 and install_python.rc != 123
+      changed_when: install_python.rc == 123
+      when: remote_os == "debian"
