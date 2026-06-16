@@ -6,3 +6,13 @@
   gather_facts: false
 
   tasks:
+
+    - name: Get remote OS id via raw command
+      ansible.builtin.raw: grep '^ID=' /etc/os-release | cut -d= -f2
+      register: command
+      failed_when: command.stdout | default('') | trim | length == 0
+      changed_when: false
+
+    - name: Clean OS id and save to a new fact
+      ansible.builtin.set_fact:
+        remote_os: "{{ command.stdout | trim | lower }}"
