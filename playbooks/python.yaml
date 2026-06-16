@@ -1,0 +1,8 @@
+# ------------------------------------------------------------------------------
+
+- name: Playbook to Install Python
+  hosts: all
+  become: true
+  gather_facts: false
+
+  tasks:
