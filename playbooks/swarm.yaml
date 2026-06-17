@@ -114,3 +114,14 @@
     token: "{{ hostvars[groups['managers'] | first].swarm_data.tokens.worker }}"
 
   tasks:
+
+    - name: Join swarm as worker
+      community.docker.docker_swarm:
+        state: join
+        remote_addrs: [ "{{ leader_ip }}:2377" ]
+        join_token: "{{ token }}"
+
+    - name: Get info on docker host
+      community.docker.docker_host_info:
+      register: docker
+      failed_when: docker.failed == true or docker.can_talk_to_docker == false
