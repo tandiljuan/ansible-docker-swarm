@@ -76,3 +76,28 @@
         key: "{{ item.ssh_key }}"
         state: present
       loop: "{{ ds_core.os.users }}"
+
+    - name: Retrieve enabled users on the host
+      ansible.builtin.shell: |
+        awk -F: '$3 >= 1000 && $7 !~ /(false|nologin)$/ {print $1}' /etc/passwd
+      register: command
+      failed_when: false
+      changed_when: false
+      no_log: true
+
+    - name: Build simplified users_disable fact
+      ansible.builtin.set_fact:
+        users_disable: >-
+          {{
+            (command.stdout_lines | default([], true) | map('trim'))
+            | difference(
+                ds_core.os.users
+                | map(attribute='name')
+                | flatten
+                | map('trim')
+              )
+            | reject('equalto', '')
+            | unique
+            | sort
+          }}
+      no_log: true
