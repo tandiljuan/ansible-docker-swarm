@@ -108,3 +108,11 @@
         state: absent
       loop: "{{ users_disable }}"
       when: item != ansible_facts.env.SUDO_USER
+
+# ------------------------------------------------------------------------------
+
+- name: Configure SSH
+  hosts: all
+  become: true
+
+  tasks:
