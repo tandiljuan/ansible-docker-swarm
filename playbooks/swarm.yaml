@@ -30,3 +30,12 @@
         state: present
         virtualenv: "{{ ansible_facts.env.HOME }}/.playbook/swarm/venv"
         virtualenv_command: python3 -m venv
+
+# ------------------------------------------------------------------------------
+
+- name: Initialize Docker Swarm Leader
+  hosts: managers[0]
+  vars:
+    ansible_python_interpreter: "{{ ansible_facts.env.HOME }}/.playbook/swarm/venv/bin/python"
+
+  tasks:
