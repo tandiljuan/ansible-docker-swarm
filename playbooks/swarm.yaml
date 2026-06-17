@@ -1,0 +1,16 @@
+# ------------------------------------------------------------------------------
+
+- name: Verify Docker Prerequisites
+  hosts: all
+
+  tasks:
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Verify service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['docker.service'].state == 'running'
+        fail_msg: "docker is not running"
+        success_msg: "docker is running"
