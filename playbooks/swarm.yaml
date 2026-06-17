@@ -51,3 +51,9 @@
                 | ansible.utils.ipaddr(ds_core.net.int.cidr)
                 | first
               }}
+
+    - name: Init swarm cluster
+      community.docker.docker_swarm:
+        state: present
+        advertise_addr: "{{ swarm_data.leader.ip }}"
+      register: swarm_info
