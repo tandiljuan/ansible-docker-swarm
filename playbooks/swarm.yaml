@@ -39,3 +39,15 @@
     ansible_python_interpreter: "{{ ansible_facts.env.HOME }}/.playbook/swarm/venv/bin/python"
 
   tasks:
+
+    - name: Find IP in network
+      ansible.builtin.set_fact:
+        swarm_data:
+          leader:
+            home: "{{ ansible_facts.env.HOME }}"
+            ip: >-
+              {{
+                ansible_facts.all_ipv4_addresses
+                | ansible.utils.ipaddr(ds_core.net.int.cidr)
+                | first
+              }}
