@@ -5,3 +5,8 @@
   become: true
 
   tasks:
+
+    - name: Install Docker
+      ansible.builtin.package:
+        name: "{{ 'docker.io' if ansible_facts.os_family == 'Debian' else 'docker' }}"
+        state: present
