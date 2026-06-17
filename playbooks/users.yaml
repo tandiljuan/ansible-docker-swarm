@@ -5,3 +5,18 @@
   become: true
 
   tasks:
+
+    - name: Create groups
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: present
+      loop: >-
+        {{
+          ds_core.os.users
+          | map(attribute='groups.present')
+          | flatten
+          | map('trim')
+          | reject('equalto', '')
+          | unique
+          | sort
+        }}
