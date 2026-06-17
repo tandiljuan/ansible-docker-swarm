@@ -69,3 +69,10 @@
         password: "{{ item.user.password }}"
         state: present
       loop: "{{ users_groups }}"
+
+    - name: Set up users SSH keys
+      ansible.posix.authorized_key:
+        user: "{{ item.name }}"
+        key: "{{ item.ssh_key }}"
+        state: present
+      loop: "{{ ds_core.os.users }}"
