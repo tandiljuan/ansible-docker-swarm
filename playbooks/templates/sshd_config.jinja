@@ -1,0 +1,155 @@
+# SSH Daemon Configuration
+#
+# References:
+# - https://coreos.com/os/docs/latest/customizing-sshd.html
+# - https://www.cyberciti.biz/tips/linux-unix-bsd-openssh-server-best-practices.html
+# - https://wiki.mozilla.org/Security/Guidelines/OpenSSH
+
+# ============================================================================
+# Network Settings
+# ============================================================================
+#
+# Configure which network ports and interfaces the SSH daemon listens on.
+
+# SSH service port.
+Port 22
+
+# Bind SSH to specific network interfaces if required.
+# Uncomment to restrict which addresses sshd listens on.
+#ListenAddress 0.0.0.0
+#ListenAddress ::
+
+# ============================================================================
+# Cryptography
+# ============================================================================
+#
+# Restrict SSH to modern cryptographic algorithms.
+# These settings prioritize strong security over compatibility with older
+# clients.
+
+# Server host key used to identify this machine.
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# ============================================================================
+# Authentication
+# ============================================================================
+#
+# Require public-key authentication and disable password-based login methods.
+
+
+# Disallow direct root logins.
+# Administrators must authenticate with individual accounts and elevate
+# privileges when necessary, improving accountability and auditability.
+PermitRootLogin no
+
+# Disable password-based authentication.
+PermitEmptyPasswords no
+PasswordAuthentication no
+
+# Require public-key authentication.
+PubkeyAuthentication yes
+AuthenticationMethods publickey
+
+# Location of authorized public keys.
+AuthorizedKeysFile %h/.ssh/authorized_keys
+
+# Disable keyboard-interactive and challenge-response authentication.
+KbdInteractiveAuthentication no
+ChallengeResponseAuthentication no
+
+# ============================================================================
+# Access Control
+# ============================================================================
+#
+# Restrict who can connect and limit resource consumption.
+
+# Only members of the following groups are allowed to access SSH.
+AllowGroups {{ ds_core.os.groups.ssh }}
+
+# Limit authentication attempts before disconnecting.
+MaxAuthTries 3
+
+# Maximum multiplexed sessions per network connection.
+MaxSessions 5
+
+# Protect against connection floods and brute-force attacks.
+MaxStartups 10:30:60
+
+# Time allowed to complete authentication.
+LoginGraceTime 30
+
+# ============================================================================
+# Session Security
+# ============================================================================
+#
+# Disable SSH features that are not required in this environment to reduce
+# the attack surface.
+
+# Disable X11 forwarding.
+X11Forwarding no
+
+# Disable TCP forwarding by default.
+AllowTcpForwarding no
+
+# Disable agent forwarding.
+AllowAgentForwarding no
+
+# Disable SSH tunnel devices.
+PermitTunnel no
+
+# Prevent remote forwarded ports from binding to non-local interfaces.
+GatewayPorts no
+
+# Prevent users from influencing the SSH daemon environment.
+PermitUserEnvironment no
+
+# Disconnect idle clients after 3 minutes.
+# This reduces the risk of unattended SSH sessions remaining active.
+ClientAliveInterval 180
+ClientAliveCountMax 0
+
+# ============================================================================
+# Logging and Auditing
+# ============================================================================
+#
+# Increase logging detail to improve traceability and forensic analysis.
+
+# Log the public-key fingerprint used during authentication.
+# This creates a clear audit trail linking logins to specific SSH keys.
+LogLevel VERBOSE
+
+# ============================================================================
+# Miscellaneous
+# ============================================================================
+
+
+# Disable MOTD display. System information should be provided through other
+# mechanisms if required.
+PrintMotd no
+
+# Allow clients to pass locale-related environment variables.
+AcceptEnv LANG LC_*
+
+# Disable PAM integration.
+#
+# With PAM disabled, SSH relies entirely on native OpenSSH authentication and
+# account handling. This is appropriate for environments using only public-key
+# authentication and no PAM-based access controls or MFA integrations.
+UsePAM no
+
+# ============================================================================
+# SFTP
+# ============================================================================
+
+# Use the built-in SFTP implementation instead of an external subsystem.
+Subsystem sftp internal-sftp
+
+# ============================================================================
+# Feature Overrides
+# ============================================================================
+#
+# Additional capabilities granted to specific user groups.
+
+# Members of the following groups can create TCP forwarding tunnels.
+Match Group {{ ds_core.os.groups.ssh }}
+    AllowTcpForwarding yes
