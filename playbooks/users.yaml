@@ -20,3 +20,29 @@
           | unique
           | sort
         }}
+
+    - name: Get groups for current users
+      ansible.builtin.shell: |
+        id -Gn {{ item.name }} \
+        | tr ' ' '\n' \
+        | grep -vx $(id -gn {{ item.name }})
+      register: command
+      loop: "{{ ds_core.os.users }}"
+      failed_when: false
+      changed_when: false
+      no_log: true
+
+    - name: Build simplified users_groups fact
+      ansible.builtin.set_fact:
+        users_groups: >-
+          {{
+            users_groups
+            | default([], true)
+            + [{
+                'user': item.item,
+                'groups': item.stdout_lines,
+                'rc': item.rc
+              }]
+          }}
+      loop: "{{ command.results }}"
+      no_log: true
