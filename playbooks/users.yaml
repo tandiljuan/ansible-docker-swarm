@@ -116,3 +116,9 @@
   become: true
 
   tasks:
+
+    - name: Ensure the current user is not locked out
+      ansible.builtin.user:
+        name: "{{ ansible_facts.env.SUDO_USER }}"
+        groups: "{{ ds_core.os.groups.ssh }}"
+        append: true
