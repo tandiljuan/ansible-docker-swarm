@@ -46,3 +46,26 @@
           }}
       loop: "{{ command.results }}"
       no_log: true
+
+    - name: Create users
+      ansible.builtin.user:
+        name: "{{ item.user.name }}"
+        groups: >-
+          {{
+            (item.groups | default([], true))
+            | union(item.user.groups.present | default([], true))
+            | difference(item.user.groups.absent | default([], true))
+            | difference(
+                [ds_core.os.groups.docker] if not (item.user.docker | default(false, true) | bool) else []
+              )
+            | map('trim')
+            | reject('equalto', '')
+            | unique
+            | sort
+          }}
+        append: false
+        shell: /bin/bash
+        create_home: true
+        password: "{{ item.user.password }}"
+        state: present
+      loop: "{{ users_groups }}"
