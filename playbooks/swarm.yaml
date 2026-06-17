@@ -102,3 +102,15 @@
       delegate_to: "{{ groups['managers'] | first }}"
       vars:
         ansible_python_interpreter: "{{ leader_home }}/.playbook/swarm/venv/bin/python"
+
+# ------------------------------------------------------------------------------
+
+- name: Initialize Docker Swarm Workers
+  hosts: workers
+  vars:
+    ansible_python_interpreter: "{{ ansible_facts.env.HOME }}/.playbook/swarm/venv/bin/python"
+    leader_home: "{{ hostvars[groups['managers'] | first].swarm_data.leader.home }}"
+    leader_ip: "{{ hostvars[groups['managers'] | first].swarm_data.leader.ip }}"
+    token: "{{ hostvars[groups['managers'] | first].swarm_data.tokens.worker }}"
+
+  tasks:
