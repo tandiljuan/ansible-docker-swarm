@@ -101,3 +101,10 @@
             | sort
           }}
       no_log: true
+
+    - name: Disable users
+      ansible.builtin.user:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ users_disable }}"
+      when: item != ansible_facts.env.SUDO_USER
