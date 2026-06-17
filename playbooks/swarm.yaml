@@ -94,3 +94,11 @@
       community.docker.docker_host_info:
       register: docker
       failed_when: docker.failed == true or docker.can_talk_to_docker == false
+
+    - name: Ensure host is a manager node
+      community.docker.docker_node:
+        hostname: "{{ docker.host_info.Swarm.NodeID }}"
+        role: manager
+      delegate_to: "{{ groups['managers'] | first }}"
+      vars:
+        ansible_python_interpreter: "{{ leader_home }}/.playbook/swarm/venv/bin/python"
