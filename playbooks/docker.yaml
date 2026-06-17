@@ -27,3 +27,19 @@
           | unique
           | sort
         }}
+
+    - name: Reset SSH connection to apply changes to the current user
+      ansible.builtin.meta: reset_connection
+
+    - name: Wait for Docker socket
+      ansible.builtin.wait_for:
+        path: /var/run/docker.sock
+        timeout: 60
+
+    - name: Wait until Docker responds
+      ansible.builtin.command: docker info
+      register: docker_info
+      retries: 30
+      delay: 2
+      until: docker_info.rc == 0
+      changed_when: false
