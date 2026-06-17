@@ -71,3 +71,15 @@
                 }
               })
           }}
+
+# ------------------------------------------------------------------------------
+
+- name: Initialize Docker Swarm Managers
+  hosts: managers:!managers[0]
+  vars:
+    ansible_python_interpreter: "{{ ansible_facts.env.HOME }}/.playbook/swarm/venv/bin/python"
+    leader_home: "{{ hostvars[groups['managers'] | first].swarm_data.leader.home }}"
+    leader_ip: "{{ hostvars[groups['managers'] | first].swarm_data.leader.ip }}"
+    token: "{{ hostvars[groups['managers'] | first].swarm_data.tokens.manager }}"
+
+  tasks:
