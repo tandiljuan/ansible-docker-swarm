@@ -132,3 +132,16 @@
         group: root
         mode: "0600"
         validate: '/usr/sbin/sshd -t -f %s'
+      notify: "restart_ssh_service"
+
+  handlers:
+
+    - name: Restart SSH
+      ansible.builtin.service:
+        name: "{{ 'ssh' if ansible_facts.os_family == 'Debian' else 'sshd' }}"
+        state: restarted
+      listen: "restart_ssh_service"
+
+    - name: Reset SSH connection to apply changes to the current user
+      ansible.builtin.meta: reset_connection
+      listen: "restart_ssh_service"
