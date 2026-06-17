@@ -1,0 +1,7 @@
+# ------------------------------------------------------------------------------
+
+- name: Playbook to Install Docker
+  hosts: all
+  become: true
+
+  tasks:
