@@ -10,3 +10,20 @@
       ansible.builtin.package:
         name: "{{ 'docker.io' if ansible_facts.os_family == 'Debian' else 'docker' }}"
         state: present
+
+    - name: Add users to docker group
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: "docker"
+        append: true
+      loop: >-
+        {{
+          ds_core.os.users
+          | selectattr('docker', 'defined')
+          | selectattr('docker', 'equalto', true)
+          | map(attribute='name')
+          | union([ansible_facts.env.SUDO_USER])
+          | list
+          | unique
+          | sort
+        }}
