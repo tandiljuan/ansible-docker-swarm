@@ -57,3 +57,17 @@
         state: present
         advertise_addr: "{{ swarm_data.leader.ip }}"
       register: swarm_info
+
+    - name: Save swarm join tokens
+      ansible.builtin.set_fact:
+        swarm_data: >-
+          {{
+            swarm_data
+            | default({})
+            | combine({
+                'tokens': {
+                  'manager': swarm_info.swarm_facts.JoinTokens.Manager,
+                  'worker': swarm_info.swarm_facts.JoinTokens.Worker,
+                }
+              })
+          }}
