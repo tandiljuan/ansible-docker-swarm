@@ -1,0 +1,135 @@
+# ------------------------------------------------------------------------------
+
+- name: Verify Docker Prerequisites
+  hosts: all
+
+  tasks:
+
+    - name: Gather service facts
+      ansible.builtin.service_facts:
+
+    - name: Verify service is running
+      ansible.builtin.assert:
+        that:
+          - ansible_facts.services['docker.service'].state == 'running'
+        fail_msg: "docker is not running"
+        success_msg: "docker is running"
+
+# ------------------------------------------------------------------------------
+
+- name: Setup Python Virtual Environment
+  hosts: all
+
+  tasks:
+
+    - name: Install python packages
+      ansible.builtin.pip:
+        name:
+          - requests
+          - docker
+        state: present
+        virtualenv: "{{ ansible_facts.env.HOME }}/.playbook/swarm/venv"
+        virtualenv_command: python3 -m venv
+
+# ------------------------------------------------------------------------------
+
+- name: Initialize Docker Swarm Leader
+  hosts: managers[0]
+  vars:
+    ansible_python_interpreter: "{{ ansible_facts.env.HOME }}/.playbook/swarm/venv/bin/python"
+
+  tasks:
+
+    - name: Find IP in network
+      ansible.builtin.set_fact:
+        swarm_data:
+          leader:
+            home: "{{ ansible_facts.env.HOME }}"
+            ip: >-
+              {{
+                ansible_facts.all_ipv4_addresses
+                | ansible.utils.ipaddr(ds_core.net.int.cidr)
+                | first
+              }}
+
+    - name: Init swarm cluster
+      community.docker.docker_swarm:
+        state: present
+        advertise_addr: "{{ swarm_data.leader.ip }}"
+      register: swarm_info
+
+    - name: Save swarm join tokens
+      ansible.builtin.set_fact:
+        swarm_data: >-
+          {{
+            swarm_data
+            | default({})
+            | combine({
+                'tokens': {
+                  'manager': swarm_info.swarm_facts.JoinTokens.Manager,
+                  'worker': swarm_info.swarm_facts.JoinTokens.Worker,
+                }
+              })
+          }}
+
+# ------------------------------------------------------------------------------
+
+- name: Initialize Docker Swarm Managers
+  hosts: managers:!managers[0]
+  vars:
+    ansible_python_interpreter: "{{ ansible_facts.env.HOME }}/.playbook/swarm/venv/bin/python"
+    leader_home: "{{ hostvars[groups['managers'] | first].swarm_data.leader.home }}"
+    leader_ip: "{{ hostvars[groups['managers'] | first].swarm_data.leader.ip }}"
+    token: "{{ hostvars[groups['managers'] | first].swarm_data.tokens.manager }}"
+
+  tasks:
+
+    - name: Join swarm as manager
+      community.docker.docker_swarm:
+        state: join
+        remote_addrs: [ "{{ leader_ip }}:2377" ]
+        join_token: "{{ token }}"
+
+    - name: Get info on docker host
+      community.docker.docker_host_info:
+      register: docker
+      failed_when: docker.failed == true or docker.can_talk_to_docker == false
+
+    - name: Ensure host is a manager node
+      community.docker.docker_node:
+        hostname: "{{ docker.host_info.Swarm.NodeID }}"
+        role: manager
+      delegate_to: "{{ groups['managers'] | first }}"
+      vars:
+        ansible_python_interpreter: "{{ leader_home }}/.playbook/swarm/venv/bin/python"
+
+# ------------------------------------------------------------------------------
+
+- name: Initialize Docker Swarm Workers
+  hosts: workers
+  vars:
+    ansible_python_interpreter: "{{ ansible_facts.env.HOME }}/.playbook/swarm/venv/bin/python"
+    leader_home: "{{ hostvars[groups['managers'] | first].swarm_data.leader.home }}"
+    leader_ip: "{{ hostvars[groups['managers'] | first].swarm_data.leader.ip }}"
+    token: "{{ hostvars[groups['managers'] | first].swarm_data.tokens.worker }}"
+
+  tasks:
+
+    - name: Join swarm as worker
+      community.docker.docker_swarm:
+        state: join
+        remote_addrs: [ "{{ leader_ip }}:2377" ]
+        join_token: "{{ token }}"
+
+    - name: Get info on docker host
+      community.docker.docker_host_info:
+      register: docker
+      failed_when: docker.failed == true or docker.can_talk_to_docker == false
+
+    - name: Ensure host is a worker node
+      community.docker.docker_node:
+        hostname: "{{ docker.host_info.Swarm.NodeID }}"
+        role: worker
+      delegate_to: "{{ groups['managers'] | first }}"
+      vars:
+        ansible_python_interpreter: "{{ leader_home }}/.playbook/swarm/venv/bin/python"
