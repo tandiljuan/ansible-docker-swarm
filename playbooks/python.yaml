@@ -41,3 +41,34 @@
       failed_when: install_python.rc != 0 and install_python.rc != 123
       changed_when: install_python.rc == 123
       when: remote_os == "debian"
+
+# ------------------------------------------------------------------------------
+
+- name: Playbook to configure Host
+  hosts: all
+  become: true
+  vars:
+    normalized_hostname: "{{ ds_host.name | default('') | trim }}"
+    hostname_provided: "{{ ds_host.name | default('') | trim | length > 0 }}"
+
+  tasks:
+
+    - name: Set hostname
+      ansible.builtin.hostname:
+        name: "{{ normalized_hostname }}"
+        use: "{{ remote_os }}"
+      when: hostname_provided
+
+    - name: Ensure hostname exists in /etc/hosts
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.1\.1\s+'
+        line: "127.0.1.1 {{ normalized_hostname }}"
+      when: hostname_provided
+
+    - name: Ensure localhost resolves to IPv4
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^::1\s+'
+        line: "::1 ip6-localhost ip6-loopback"
+      when: hostname_provided
