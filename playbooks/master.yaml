@@ -1,0 +1,6 @@
+# ------------------------------------------------------------------------------
+
+- import_playbook: python.yaml
+- import_playbook: users.yaml
+- import_playbook: docker.yaml
+- import_playbook: swarm.yaml
