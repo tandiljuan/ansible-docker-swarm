@@ -1,0 +1,9 @@
+[project]
+name = "ansible-swarm"
+version = "0.1.0"
+description = "Automated infrastructure setup for Docker Swarm clusters using Ansible."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "ansible>=13.7.0",
+]
