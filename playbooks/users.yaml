@@ -1,0 +1,110 @@
+# ------------------------------------------------------------------------------
+
+- name: Configure users
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Create groups
+      ansible.builtin.group:
+        name: "{{ item }}"
+        state: present
+      loop: >-
+        {{
+          ds_core.os.users
+          | map(attribute='groups.present')
+          | flatten
+          | map('trim')
+          | reject('equalto', '')
+          | unique
+          | sort
+        }}
+
+    - name: Get groups for current users
+      ansible.builtin.shell: |
+        id -Gn {{ item.name }} \
+        | tr ' ' '\n' \
+        | grep -vx $(id -gn {{ item.name }})
+      register: command
+      loop: "{{ ds_core.os.users }}"
+      failed_when: false
+      changed_when: false
+      no_log: true
+
+    - name: Build simplified users_groups fact
+      ansible.builtin.set_fact:
+        users_groups: >-
+          {{
+            users_groups
+            | default([], true)
+            + [{
+                'user': item.item,
+                'groups': item.stdout_lines,
+                'rc': item.rc
+              }]
+          }}
+      loop: "{{ command.results }}"
+      no_log: true
+
+    - name: Create users
+      ansible.builtin.user:
+        name: "{{ item.user.name }}"
+        groups: >-
+          {{
+            (item.groups | default([], true))
+            | union(item.user.groups.present | default([], true))
+            | difference(item.user.groups.absent | default([], true))
+            | difference(
+                [ds_core.os.groups.docker] if not (item.user.docker | default(false, true) | bool) else []
+              )
+            | map('trim')
+            | reject('equalto', '')
+            | unique
+            | sort
+          }}
+        append: false
+        shell: /bin/bash
+        create_home: true
+        password: "{{ item.user.password }}"
+        state: present
+      loop: "{{ users_groups }}"
+
+    - name: Set up users SSH keys
+      ansible.posix.authorized_key:
+        user: "{{ item.name }}"
+        key: "{{ item.ssh_key }}"
+        state: present
+      loop: "{{ ds_core.os.users }}"
+
+    - name: Retrieve enabled users on the host
+      ansible.builtin.shell: |
+        awk -F: '$3 >= 1000 && $7 !~ /(false|nologin)$/ {print $1}' /etc/passwd
+      register: command
+      failed_when: false
+      changed_when: false
+      no_log: true
+
+    - name: Build simplified users_disable fact
+      ansible.builtin.set_fact:
+        users_disable: >-
+          {{
+            (command.stdout_lines | default([], true) | map('trim'))
+            | difference(
+                ds_core.os.users
+                | map(attribute='name')
+                | flatten
+                | map('trim')
+              )
+            | reject('equalto', '')
+            | unique
+            | sort
+          }}
+      no_log: true
+
+    - name: Disable users
+      ansible.builtin.user:
+        name: "{{ item }}"
+        state: absent
+      loop: "{{ users_disable }}"
+      when: item != ansible_facts.env.SUDO_USER
