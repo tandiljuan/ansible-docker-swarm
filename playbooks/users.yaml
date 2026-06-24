@@ -108,3 +108,40 @@
         state: absent
       loop: "{{ users_disable }}"
       when: item != ansible_facts.env.SUDO_USER
+
+# ------------------------------------------------------------------------------
+
+- name: Configure SSH
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Ensure the current user is not locked out
+      ansible.builtin.user:
+        name: "{{ ansible_facts.env.SUDO_USER }}"
+        groups: "{{ ds_core.os.groups.ssh }}"
+        append: true
+
+    - name: Deploy sshd_config
+      ansible.builtin.template:
+        src: templates/sshd_config.jinja
+        dest: /etc/ssh/sshd_config
+        backup: true
+        owner: root
+        group: root
+        mode: "0600"
+        validate: '/usr/sbin/sshd -t -f %s'
+      notify: "restart_ssh_service"
+
+  handlers:
+
+    - name: Restart SSH
+      ansible.builtin.service:
+        name: "{{ 'ssh' if ansible_facts.os_family == 'Debian' else 'sshd' }}"
+        state: restarted
+      listen: "restart_ssh_service"
+
+    - name: Reset SSH connection to apply changes to the current user
+      ansible.builtin.meta: reset_connection
+      listen: "restart_ssh_service"
