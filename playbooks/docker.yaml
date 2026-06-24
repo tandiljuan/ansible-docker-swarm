@@ -1,0 +1,45 @@
+# ------------------------------------------------------------------------------
+
+- name: Playbook to Install Docker
+  hosts: all
+  become: true
+
+  tasks:
+
+    - name: Install Docker
+      ansible.builtin.package:
+        name: "{{ 'docker.io' if ansible_facts.os_family == 'Debian' else 'docker' }}"
+        state: present
+
+    - name: Add users to docker group
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: "docker"
+        append: true
+      loop: >-
+        {{
+          ds_core.os.users
+          | selectattr('docker', 'defined')
+          | selectattr('docker', 'equalto', true)
+          | map(attribute='name')
+          | union([ansible_facts.env.SUDO_USER])
+          | list
+          | unique
+          | sort
+        }}
+
+    - name: Reset SSH connection to apply changes to the current user
+      ansible.builtin.meta: reset_connection
+
+    - name: Wait for Docker socket
+      ansible.builtin.wait_for:
+        path: /var/run/docker.sock
+        timeout: 60
+
+    - name: Wait until Docker responds
+      ansible.builtin.command: docker info
+      register: docker_info
+      retries: 30
+      delay: 2
+      until: docker_info.rc == 0
+      changed_when: false
