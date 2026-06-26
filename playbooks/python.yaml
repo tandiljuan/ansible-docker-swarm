@@ -22,7 +22,11 @@
     - name: Install Python in Alpine
       register: install_python
       ansible.builtin.raw: |
-        if ! command -v python3 > /dev/null 2>&1; then
+        if ! {
+          command -v python3 > /dev/null 2>&1 &&
+          command -v pip3 > /dev/null 2>&1 &&
+          python3 -c 'import venv' > /dev/null 2>&1
+        }; then
           apk update \
           && apk add --no-cache --no-interactive python3 py3-pip \
           && exit 123
@@ -34,7 +38,11 @@
     - name: Install Python in Debian
       register: install_python
       ansible.builtin.raw: |
-        if ! command -v python3 > /dev/null 2>&1; then
+        if ! {
+          command -v python3 > /dev/null 2>&1 &&
+          command -v pip3 > /dev/null 2>&1 &&
+          python3 -c 'import venv' > /dev/null 2>&1
+        }; then
           apt-get update \
           && apt-get install -y --no-install-recommends python3 python3-pip python3-venv \
           && rm -rf /var/lib/apt/lists/* \
