@@ -8,7 +8,9 @@
   tasks:
 
     - name: Get remote OS id via raw command
-      ansible.builtin.raw: grep '^ID=' /etc/os-release | cut -d= -f2
+      ansible.builtin.raw: |
+        echo $(grep '^ID_LIKE=' /etc/os-release || grep '^ID=' /etc/os-release) \
+        | cut -d= -f2
       register: command
       failed_when: command.stdout | default('') | trim | length == 0
       changed_when: false
