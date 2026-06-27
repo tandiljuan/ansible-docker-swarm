@@ -6,6 +6,12 @@
 
   tasks:
 
+    - name: Update package cache (Debian)
+      ansible.builtin.apt:
+        update_cache: true
+      changed_when: false
+      when: ansible_facts.os_family == "Debian"
+
     - name: Install Docker
       ansible.builtin.package:
         name: "{{ 'docker.io' if ansible_facts.os_family == 'Debian' else 'docker' }}"
