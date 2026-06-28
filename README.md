@@ -116,13 +116,15 @@ workers:
 To execute the entire deployment pipeline, run the master playbook:
 
 ```bash
-ansible-playbook -i path/to/inventory playbooks/master.yaml
+ansible-playbook -i path/to/inventory [-k|--ask-pass] [-K|--ask-become-pass] playbooks/master.yaml
 ```
 
-**Note**: If you place your inventory file inside the `inventory/` directory, Ansible loads it automatically. You can then omit the `-i` argument:
+Use `--ask-pass` (or `-k`) if you need to provide a password for SSH authentication. Use `--ask-become-pass` (or `-K`) if you need to provide a password to acquire administrative privileges (become `root`).
+
+If you place your inventory file inside the `inventory/` directory, Ansible loads it automatically and you can omit the `-i` argument:
 
 ```bash
-ansible-playbook playbooks/master.yaml
+ansible-playbook [-k|--ask-pass] [-K|--ask-become-pass] playbooks/master.yaml
 ```
 
 The master playbook executes the following component playbooks sequentially:

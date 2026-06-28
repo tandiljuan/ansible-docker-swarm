@@ -8,7 +8,9 @@
   tasks:
 
     - name: Get remote OS id via raw command
-      ansible.builtin.raw: grep '^ID=' /etc/os-release | cut -d= -f2
+      ansible.builtin.raw: |
+        echo $(grep '^ID_LIKE=' /etc/os-release || grep '^ID=' /etc/os-release) \
+        | cut -d= -f2
       register: command
       failed_when: command.stdout | default('') | trim | length == 0
       changed_when: false
@@ -20,7 +22,11 @@
     - name: Install Python in Alpine
       register: install_python
       ansible.builtin.raw: |
-        if ! command -v python3 > /dev/null 2>&1; then
+        if ! {
+          command -v python3 > /dev/null 2>&1 &&
+          command -v pip3 > /dev/null 2>&1 &&
+          python3 -c 'import venv' > /dev/null 2>&1
+        }; then
           apk update \
           && apk add --no-cache --no-interactive python3 py3-pip \
           && exit 123
@@ -32,10 +38,14 @@
     - name: Install Python in Debian
       register: install_python
       ansible.builtin.raw: |
-        if ! command -v python3 > /dev/null 2>&1; then
+        if ! {
+          command -v python3 > /dev/null 2>&1 &&
+          command -v pip3 > /dev/null 2>&1 &&
+          python3 -c 'import venv' > /dev/null 2>&1
+        }; then
           apt-get update \
           && apt-get install -y --no-install-recommends python3 python3-pip python3-venv \
-          && rm -rf /var/lib/apt/lists/* \
+          && apt-get clean \
           && exit 123
         fi
       failed_when: install_python.rc != 0 and install_python.rc != 123
