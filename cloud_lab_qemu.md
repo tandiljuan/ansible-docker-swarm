@@ -131,13 +131,25 @@ sudo dnsmasq --conf-file=/etc/dnsmasq.d/qemu.conf --pid-file=/tmp/dnsmasq_qemu.p
 
 With the network configuration in place, you can start the virtual machines. Each VM exposes its internal SSH port (`22`) through a host port in the format `22XX`, where `XX` is the VM number with a leading zero. For example, the first VM uses port `2201`.
 
+Define the CPU and RAM allocation for each virtual machine. You can also define default values to be used if specific values are not provided for a virtual machine.
+
+```bash
+export SMP_DEFAULT=1
+export MEM_DEFAULT="1G"
+export SMP_LIST=(2)
+export MEM_LIST=("2G")
+```
+
+Start the virtual machines using the following command:
+
 ```bash
 for i in $(seq 1 $VM_AMOUNT); do
     leading=$(printf "%02d" $i)
     qemu-system-x86_64  \
         -machine accel=kvm,type=q35 \
         -cpu host \
-        -m 1G \
+        -smp "${SMP_LIST[$(( i - 1 ))]:-$SMP_DEFAULT}" \
+        -m "${MEM_LIST[$(( i - 1 ))]:-$MEM_DEFAULT}" \
         -device virtio-net-pci,netdev=net0 \
         -netdev "user,id=net0,hostfwd=tcp::22${leading}-:22" \
         -device "virtio-net-pci,netdev=net1,mac=52:54:00:00:00:${leading}" \
